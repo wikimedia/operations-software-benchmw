@@ -1,0 +1,19 @@
+# Names for labels used in run_benchmarks.py
+configurations:
+    hhvm: HHVM
+    maxch40: 40 workers
+    maxch40_static: 40 workers (static)
+    maxch80: 80 workers
+    maxch80_static: 80 workers (static)
+    opcache_1: Opcache (basic)
+    opcache_2: Opcache (optimal)
+    opcache_3: Opcache (no refesh)
+    sock: Unix socket proxying
+    sock60: Unix socket, 60 workers
+    sock60lb: Unix socket, 60w, load-balanced'
+
+# Comparison charts to generate
+comparisons:
+    workers: ['hhvm', 'maxch40', 'maxch40_static'],
+    opcache: ['hhvm', 'opcache_1', 'opcache_2', 'opcache_3'],
+    high_workers: ['hhvm', 'opcache_2', 'maxch80', 'maxch80_static', 'sock', 'sock60']

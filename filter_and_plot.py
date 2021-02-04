@@ -1,63 +1,54 @@
 #!/usr/bin/env python3
-import glob
+"""
+Copyright (C) 2018 Giuseppe Lavagetto <glavagetto@wikimedia.org>
+Copyright (C) 2021 Kunal Mehta <legoktm@member.fsf.org>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+import argparse
 import math
-import os
 import re
 import subprocess
-import sys
 
-DATA_DIR = sys.argv[1]
-CLEAN_DIR = os.path.join(DATA_DIR, 'clean')
-IMAGES_DIR = os.path.join(CLEAN_DIR, 'images')
+from pathlib import Path
 
-# test we ran / description
-TESTS = {
-    'main_page': 'Enwiki main page',
-    'light_page': 'itwiki:Nemico Pubblico (film 1998)',
-    're-parse': 'Re-parsing of enwiki:Australia',
-    'load': 'load.php css stylesheet',
-    'heavy_page': 'Enwiki Obama page (no re-parsing)'
-}
+import yaml
 
-CONFIGURATIONS = {
-    'buster16': 'buster (2016)',
-    'stretch16': 'stretch (2016)',
-    'buster19': 'buster (2019)',
-    'stretch19': 'stretch (2019)',
-    'mw1381': 'stretch (4.19 kernel, 2019 hw)'
-    # 'hhvm': 'HHVM',
-    # 'maxch40': '40 workers',
-    # 'maxch40_static': '40 workers (static)',
-    # 'maxch80': '80 workers',
-    # 'maxch80_static': '80 workers (static)',
-    # 'opcache_1': 'Opcache (basic)',
-    # 'opcache_2': 'Opcache (optimal)',
-    # 'opcache_3': 'Opcache (no refesh)',
-    # 'sock': 'Unix socket proxying',
-    # 'sock60': 'Unix socket, 60 workers',
-    # 'sock60lb': 'Unix socket, 60w, load-balanced'
-}
-
-COMPARISONS = {
-    'distro': ['stretch16', 'buster16', 'stretch19', 'mw1381', 'buster19'],
-    '2019': ['stretch19', 'buster19'],
-    '2016': ['stretch16', 'buster16'],
-    'kernel419': ['mw1381', 'buster19'],
-    'stretch19': ['stretch19', 'mw1381', 'buster19']
-    # 'workers': ['hhvm', 'maxch40', 'maxch40_static'],
-    # 'opcache': ['hhvm', 'opcache_1', 'opcache_2', 'opcache_3'],
-    # 'high_workers': ['hhvm', 'opcache_2', 'maxch80', 'maxch80_static', 'sock', 'sock60']
-}
+from run_benchmarks import STEPS, URLS
 
 
-def clean(filename):
+def parse_args():
+    parser = argparse.ArgumentParser(description="Filter data and plot it into charts")
+    parser.add_argument("data_dir", type=Path, help="Directory of data files")
+    parser.add_argument("config", type=Path, help="Configuration of comparisons to make")
+    args = parser.parse_args()
+
+    if not args.data_dir.is_dir():
+        raise ValueError("{} is not a directory".format(args.data))
+    if not args.config.exists():
+        raise ValueError("{} does not exist".format(args.config))
+
+    return args
+
+
+def clean(clean_dir: Path, filename: Path) -> Path:
     print("cleaning file {}".format(filename))
     # read all the file, extract response time and timestamp, and sort by timestamp.
     # NOT optimized on purpose.
-    clean_filename = os.path.join(CLEAN_DIR, os.path.basename(filename))
+    clean_filename = clean_dir / filename.name
     results = []
-    with open(filename, 'r') as f:
-        content = f.readlines()
+    content = filename.read_text().splitlines()
     for line in content[1:]:
         fields = re.split(r'\t+', line)
         # add a tuple with ts, ttime
@@ -86,16 +77,16 @@ def clean(filename):
     to_remove = math.ceil(len(clean_results) * 0.01)
     clean_results = clean_results[:-to_remove]
     print("Saving cleaned file to {}".format(clean_filename))
-    with open(clean_filename, 'w') as f:
+    with clean_filename.open('w') as f:
         for duration, ts in clean_results:
             f.write("{}\t{}\n".format(duration, ts))
     return clean_filename
 
 
-def parse_filename(filename):
-    bn = os.path.basename(filename)
-    all_configs = CONFIGURATIONS.keys()
-    all_tests = TESTS.keys()
+def parse_filename(config, filename: Path):
+    bn = filename.name
+    all_configs = list(config['configurations'])
+    all_tests = list(URLS)
     configuration = None
     test = None
     concurrency = None
@@ -132,20 +123,19 @@ def parse_filename(filename):
     return {'conf': configuration, 't': test, 'c': concurrency}
 
 
-def gnuplot(classifier, name, configs, test, c):
+def gnuplot(config, images_dir: Path, clean_dir: Path, classifier, name, labels, test, c):
     plot_line = []
-    for config in configs:
-        filename = "{}_{}_c{}.dat".format(config, test, c)
+    for label in labels:
+        filename = "{}_{}_c{}.dat".format(label, test, c)
         try:
             clean_file = classifier[filename]['clean_file']
-            plot_line.append("'{}' u 1 title '{}' w l s c lw 4".format(
-                clean_file, CONFIGURATIONS[config]))
-        except Exception:
-            raise
-            print('WARNING: file {} not found'.format(filename))
+        except KeyError:
+            raise RuntimeError("Unable to find {}".format(filename))
+        plot_line.append("'{}' u 1 title '{}' w l s c lw 4".format(
+            clean_file, config['configurations'][label]))
     # remove the trailing comma and space
-    outfile = os.path.join(IMAGES_DIR, "{}_{}_c{}.png".format(name, test, c))
-    gpfile = os.path.join(CLEAN_DIR, "{}_{}_c{}.gpl".format(name, test, c))
+    outfile = images_dir / "{}_{}_c{}.png".format(name, test, c)
+    gpfile = clean_dir / "{}_{}_c{}.gpl".format(name, test, c)
     tpl = """
 set title '{title} (c={conc})'
 set term png size 800,600
@@ -153,34 +143,40 @@ set key left
 set out '{outfile}'
 p {plotline}
 """
-    with open(gpfile, 'w') as f:
-        content = tpl.format(title=TESTS[test], conc=c, outfile=outfile,
-                             plotline=", ".join(plot_line))
-        f.write(content)
-    subprocess.check_call(['gnuplot', gpfile])
+    content = tpl.format(title=URLS[test]['title'], conc=c, outfile=outfile,
+                         plotline=", ".join(plot_line))
+    gpfile.write_text(content)
+    subprocess.check_call(['gnuplot', str(gpfile)])
     print('Created {}'.format(outfile))
 
 
-if __name__ == '__main__':
+def main():
+    args = parse_args()
+    clean_dir = args.data_dir / 'clean'
+    images_dir = args.data_dir / 'images'
+    with args.config.open() as f:
+        config = yaml.safe_load(f)
+    print(config)
     classifier = {}
-    if not os.path.isdir(CLEAN_DIR):
-        os.mkdir(CLEAN_DIR)
-    if not os.path.isdir(IMAGES_DIR):
-        os.mkdir(IMAGES_DIR)
+    if not clean_dir.is_dir():
+        clean_dir.mkdir()
+    if not images_dir.is_dir():
+        images_dir.mkdir()
     # find interesting files
-    for filename in sorted(glob.glob("{}/*.dat".format(DATA_DIR))):
-        try:
-            classifier[os.path.basename(filename)] = parse_filename(filename)
-        except Exception as e:
-            print(e)
+    for filename in sorted(args.data_dir.glob("*.dat")):
+        classifier[filename.name] = parse_filename(config, filename)
 
     # now clean them
-    for filename in sorted(classifier.keys()):
-        classifier[filename]['clean_file'] = clean(os.path.join(DATA_DIR, filename))
+    for filename in sorted(classifier):
+        classifier[filename]['clean_file'] = clean(clean_dir, args.data_dir / filename)
 
     # Now let's process the comparisons we want and create the graphs
-    for name, configs in COMPARISONS.items():
-        for test in TESTS.keys():
-            for c in [10, 15, 20, 25, 30, 35, 40]:
+    for name, configs in config['comparisons'].items():
+        for test in URLS:
+            for c in STEPS:
                 # Create a graph series including the configs we picked
-                gnuplot(classifier, name, configs, test, c)
+                gnuplot(config, images_dir, clean_dir, classifier, name, configs, test, c)
+
+
+if __name__ == '__main__':
+    main()
