@@ -59,6 +59,12 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Run MediaWiki benchmarks")
     parser.add_argument("host", help="Hostname to benchmark")
     parser.add_argument("label", help="Label to save data with")
+    parser.add_argument("label", help="Label to save data with")
+    parser.add_argument('--timeout',
+                        dest='timeout',
+                        default=120,
+                        help='ab timeout (-s parameter). The default of ab, 30, is not enough. We default to 120')
+
     return parser.parse_args()
 
 
@@ -67,11 +73,12 @@ def log(msg):
     print("[%s] %s" % (ts, msg))
 
 
-def ab_req(host, run_label, conc, num_req, filename, url):
+def ab_req(host, run_label, conc, num_req, filename, url, timeout=120):
     _, netloc, path, qs, anchor = urlsplit(url)
     my_url = urlunsplit(('http', host, path, qs, anchor))
     cmd = [
             'ab',
+            '-s', str(timeout),
             '-c', str(conc),
             '-n', str(num_req),
             '-H', 'Host: {}'.format(netloc),
@@ -89,7 +96,8 @@ def main():
         log("Performing requests for {}".format(label))
         for conc in STEPS:
             log("Starting run with c={}, n={}".format(conc, config['reqs']))
-            ab_req(args.host, args.label, conc, config['reqs'], label, config['url'])
+            ab_req(args.host, args.label, conc, config['reqs'], label,
+                    config['url'], args.timeout )
 
 
 if __name__ == "__main__":
