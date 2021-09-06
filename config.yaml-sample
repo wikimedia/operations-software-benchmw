@@ -17,3 +17,8 @@ comparisons:
     workers: ['hhvm', 'maxch40', 'maxch40_static'],
     opcache: ['hhvm', 'opcache_1', 'opcache_2', 'opcache_3'],
     high_workers: ['hhvm', 'opcache_2', 'maxch80', 'maxch80_static', 'sock', 'sock60']
+    # Create clustered histograms of percentiles
+    percentiles: ['hhvm', 'opcache_2', 'maxch80', 'maxch80_static', 'sock', 'sock60']
+
+# Only used when comparing percentiles. The name of one of the comparisons above needs to be "percentiles"
+percentiles: [0.5, 0.75, 0.9, 0.95, 0.99]

@@ -123,6 +123,58 @@ def parse_filename(config, filename: Path):
     return {'conf': configuration, 't': test, 'c': concurrency}
 
 
+def latency_plot(config, images_dir: Path, clean_dir: Path, classifier, name, labels, test, c):
+    filenames = []
+    for label in labels:
+        filename = "{}_{}_c{}.dat".format(label, test, c)
+        try:
+            clean_file = classifier[filename]['clean_file']
+            filenames.append(clean_file)
+        except KeyError:
+            raise RuntimeError("Unable to find {}".format(filename))
+    label_descrs = map(lambda x: config['configurations'][x], labels)
+    percentiles = ['Percentile\t' + '\t'.join(label_descrs)]
+    for percentile in config['percentiles']:
+        data = [str(percentile)]
+        for filename in filenames:
+            with open(filename, 'r') as f:
+                lines = f.readlines()
+                p = lines[round(percentile*len(lines))]
+                data.append(p.split('\t')[0])
+        data = '\t'.join(data)
+        percentiles.append(data)
+    pfile = '{}_{}_{}.percentiles'.format('+'.join(labels), test, c)
+    print('Saving to ', clean_dir / pfile)
+    percentiles = map(lambda x: x + '\n', percentiles)
+    with open(clean_dir / pfile, 'w') as f:
+        f.writelines(percentiles)
+
+    # And now let's draw it
+    outfile = images_dir / "{}_{}_c{}.png".format(name, test, c)
+    gpfile = clean_dir / "{}_{}_c{}.gpl".format(name, test, c)
+    tpl = """
+set title '{title} (c={conc})'
+set term png size 1800,1600
+set key left top vertical samplen 4 spacing 1 font ",20"
+set xtics rotate out
+set out '{outfile}'
+set style data histogram
+set style fill solid border
+set style histogram clustered gap 3
+plot for [COL=2:{last_label}] '{infile}' using COL:xticlabels(1) title columnheader
+"""
+    content = tpl.format(
+            title=URLS[test]['title'],
+            conc=c,
+            outfile=outfile,
+            infile=clean_dir / pfile,
+            last_label=len(labels) + 1,
+            )
+    gpfile.write_text(content)
+    subprocess.check_call(['gnuplot', str(gpfile)])
+    print('Created {}'.format(outfile))
+
+
 def gnuplot(config, images_dir: Path, clean_dir: Path, classifier, name, labels, test, c):
     plot_line = []
     for label in labels:
@@ -174,8 +226,13 @@ def main():
     for name, configs in config['comparisons'].items():
         for test in URLS:
             for c in STEPS:
-                # Create a graph series including the configs we picked
-                gnuplot(config, images_dir, clean_dir, classifier, name, configs, test, c)
+                # TODO: Make this good, not hardcoded
+                if name == 'percentiles':
+                    latency_plot(config, images_dir, clean_dir, classifier,
+                            name, configs, test, c)
+                else:
+                    # Create a graph series including the configs we picked
+                    gnuplot(config, images_dir, clean_dir, classifier, name, configs, test, c)
 
 
 if __name__ == '__main__':
