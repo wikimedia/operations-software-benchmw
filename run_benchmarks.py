@@ -50,7 +50,7 @@ URLS = {
     'load': {
         'url': 'https://kk.wikipedia.org/w/load.php?debug=false&lang=kk&modules=ext.3d.styles%7Cext.cite.styles%7Cext.uls.interlanguage%7Cext.visualEditor.desktopArticleTarget.noscript%7Cext.wikimediaBadges%7Cmediawiki.legacy.commonPrint%2Cshared%7Cmediawiki.page.gallery.styles%7Cmediawiki.skinning.interface%7Cmediawiki.toc.styles%7Cskins.vector.styles%7Cwikibase.client.init&only=styles&skin=vector', # noqa
         'reqs': 30000,
-        'title': 'Re-parsing of enwiki:Australia'
+        'title': 'Load of kk.wikpedia.org'
     },
 }
 
