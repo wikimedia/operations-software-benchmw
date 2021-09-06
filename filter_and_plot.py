@@ -131,7 +131,7 @@ def gnuplot(config, images_dir: Path, clean_dir: Path, classifier, name, labels,
             clean_file = classifier[filename]['clean_file']
         except KeyError:
             raise RuntimeError("Unable to find {}".format(filename))
-        plot_line.append("'{}' u 1 title '{}' w l s c lw 4".format(
+        plot_line.append("'{}' using 1 title '{}' with lines smooth csplines linewidth 4".format(
             clean_file, config['configurations'][label]))
     # remove the trailing comma and space
     outfile = images_dir / "{}_{}_c{}.png".format(name, test, c)
@@ -141,7 +141,7 @@ set title '{title} (c={conc})'
 set term png size 800,600
 set key left
 set out '{outfile}'
-p {plotline}
+plot {plotline}
 """
     content = tpl.format(title=URLS[test]['title'], conc=c, outfile=outfile,
                          plotline=", ".join(plot_line))
