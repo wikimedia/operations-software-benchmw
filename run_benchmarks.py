@@ -30,27 +30,38 @@ URLS = {
     'main_page': {
         'url': 'https://en.wikipedia.org/wiki/Main_Page',
         'reqs': 10000,
-        'title': 'enwiki:Main Page'
+        'title': 'View enwiki:Main_Page'
     },
     'light_page': {
         'url': 'https://it.wikipedia.org/wiki/Nemico_pubblico_(film_1998)',
         'reqs': 10000,
-        'title': 'itwiki:Nemico Pubblico (film 1998)'
+        'title': 'View itwiki:Nemico_pubblico_(film_1998)'
     },
     'heavy_page': {
         'url': 'https://en.wikipedia.org/wiki/Barack_Obama',
         'reqs': 10000,
-        'title': 'enwiki:Barack Obama (no re-parsing)'
+        # Remember that views use ParserCache.
+        'title': 'View enwiki:Barack_Obama'
+    },
+    'reparse_light': {
+        'url': 'https://nl.wikipedia.org/w/api.php?format=json&action=parse&text={{:Atoom}}',
+        'reqs': 500,
+        'title': 'Re-parse nlwiki:Atoom'
     },
     're-parse': {
         'url': 'https://en.wikipedia.org/w/api.php?action=parse&text={{:Australia}}',
         'reqs': 500,
-        'title': 'Re-parsing of enwiki:Australia'
+        'title': 'Re-parse enwiki:Australia'
+    },
+    'rl_startup': {
+        'url': 'https://nl.wikipedia.org/w/load.php?lang=nl&modules=startup&only=scripts&raw=1&skin=vector', # noqa
+        'reqs': 30000,
+        'title': 'load.php startup JS for nlwiki'
     },
     'load': {
         'url': 'https://kk.wikipedia.org/w/load.php?debug=false&lang=kk&modules=ext.3d.styles%7Cext.cite.styles%7Cext.uls.interlanguage%7Cext.visualEditor.desktopArticleTarget.noscript%7Cext.wikimediaBadges%7Cmediawiki.legacy.commonPrint%2Cshared%7Cmediawiki.page.gallery.styles%7Cmediawiki.skinning.interface%7Cmediawiki.toc.styles%7Cskins.vector.styles%7Cwikibase.client.init&only=styles&skin=vector', # noqa
         'reqs': 30000,
-        'title': 'Load of kk.wikpedia.org'
+        'title': 'load.php styles for kkwiki'
     },
 }
 
