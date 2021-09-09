@@ -27,29 +27,29 @@ MIN_CONCURRENCY = 10
 MAX_CONCURRENCY = 40
 STEPS = list(range(MIN_CONCURRENCY, MAX_CONCURRENCY + 1))[::5]
 URLS = {
-    'main_page': {
+    'view_mainpage': {
         'url': 'https://en.wikipedia.org/wiki/Main_Page',
         'reqs': 10000,
-        'title': 'View enwiki:Main_Page'
+        'title': 'View enwiki:Main Page'
     },
-    'light_page': {
+    'view_short': {
         'url': 'https://it.wikipedia.org/wiki/Nemico_pubblico_(film_1998)',
         'reqs': 10000,
-        'title': 'View itwiki:Nemico_pubblico_(film_1998)'
+        'title': 'View itwiki:Nemico pubblico (film_1998)'
     },
-    'heavy_page': {
+    'view_long': {
         'url': 'https://en.wikipedia.org/wiki/Barack_Obama',
         'reqs': 10000,
         # Remember that views use ParserCache.
-        'title': 'View enwiki:Barack_Obama'
+        'title': 'View enwiki:Barack Obama'
     },
     'reparse_light': {
-        'url': 'https://nl.wikipedia.org/w/api.php?format=json&action=parse&text={{:Atoom}}',
+        'url': 'https://nl.wikipedia.org/w/api.php?format=json&action=parse&title=Atoom&text={{:Atoom}}',
         'reqs': 500,
         'title': 'Re-parse nlwiki:Atoom'
     },
-    're-parse': {
-        'url': 'https://en.wikipedia.org/w/api.php?action=parse&text={{:Australia}}',
+    'reparse_heavy': {
+        'url': 'https://en.wikipedia.org/w/api.php?format=json&action=parse&title=Australia&text={{:Australia}}',
         'reqs': 500,
         'title': 'Re-parse enwiki:Australia'
     },
@@ -58,8 +58,8 @@ URLS = {
         'reqs': 30000,
         'title': 'load.php startup JS for nlwiki'
     },
-    'load': {
-        'url': 'https://kk.wikipedia.org/w/load.php?debug=false&lang=kk&modules=ext.3d.styles%7Cext.cite.styles%7Cext.uls.interlanguage%7Cext.visualEditor.desktopArticleTarget.noscript%7Cext.wikimediaBadges%7Cmediawiki.legacy.commonPrint%2Cshared%7Cmediawiki.page.gallery.styles%7Cmediawiki.skinning.interface%7Cmediawiki.toc.styles%7Cskins.vector.styles%7Cwikibase.client.init&only=styles&skin=vector', # noqa
+    'rl_css': {
+        'url': 'https://kk.wikipedia.org/w/load.php?lang=en&modules=ext.echo.styles.badge%7Cext.uls.interlanguage%7Cext.visualEditor.desktopArticleTarget.noscript%7Cext.wikimediaBadges%7Cmediawiki.ui.button%7Coojs-ui.styles.icons-alerts%7Cskins.vector.styles.legacy&only=styles&skin=vector', # noqa
         'reqs': 30000,
         'title': 'load.php styles for kkwiki'
     },
