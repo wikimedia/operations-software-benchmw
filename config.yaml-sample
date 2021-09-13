@@ -1,4 +1,9 @@
 # Names for labels used in run_benchmarks.py
+# NOTE: Do not use spaces or underscores on the supposedly more legible label
+# names(right hand side of the struct below). Gnuplot will:
+#  * translate underscores to subscript
+#  * spaces will be %20
+# If you absolutely need them triple escape them, e.g. \\\_
 configurations:
     hhvm: HHVM
     maxch40: 40 workers
