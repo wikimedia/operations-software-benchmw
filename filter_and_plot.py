@@ -143,7 +143,7 @@ def latency_plot(config, images_dir: Path, clean_dir: Path, classifier, name, la
                 data.append(p.split('\t')[0])
         data = '\t'.join(data)
         percentiles.append(data)
-    pfile = '{}_{}_{}.percentiles'.format('+'.join(labels), test, c)
+    pfile = '{}_{}_{}_{}.percentiles'.format(name, '+'.join(labels), test, c)
     print('Saving to ', clean_dir / pfile)
     percentiles = map(lambda x: x + '\n', percentiles)
     with open(clean_dir / pfile, 'w') as f:
@@ -227,8 +227,7 @@ def main():
     for name, configs in config['comparisons'].items():
         for test in URLS:
             for c in STEPS:
-                # TODO: Make this good, not hardcoded
-                if name == 'percentiles':
+                if name.startswith('percentiles'):
                     latency_plot(config, images_dir, clean_dir, classifier,
                             name, configs, test, c)
                 else:
