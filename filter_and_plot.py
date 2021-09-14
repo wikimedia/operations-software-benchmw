@@ -161,6 +161,7 @@ set out '{outfile}'
 set style data histogram
 set style fill solid border
 set style histogram clustered gap 3
+set yrange [0:*]
 plot for [COL=2:{last_label}] '{infile}' using COL:xticlabels(1) title columnheader
 """
     content = tpl.format(
