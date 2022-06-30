@@ -31,7 +31,9 @@ from run_benchmarks import STEPS, URLS
 def parse_args():
     parser = argparse.ArgumentParser(description="Filter data and plot it into charts")
     parser.add_argument("data_dir", type=Path, help="Directory of data files")
-    parser.add_argument("config", type=Path, help="Configuration of comparisons to make")
+    parser.add_argument(
+        "config", type=Path, help="Configuration of comparisons to make"
+    )
     args = parser.parse_args()
 
     if not args.data_dir.is_dir():
@@ -50,7 +52,7 @@ def clean(clean_dir: Path, filename: Path) -> Path:
     results = []
     content = filename.read_text().splitlines()
     for line in content[1:]:
-        fields = re.split(r'\t+', line)
+        fields = re.split(r"\t+", line)
         # add a tuple with ts, ttime
         try:
             results.append((fields[1], fields[4]))
@@ -77,7 +79,7 @@ def clean(clean_dir: Path, filename: Path) -> Path:
     to_remove = math.ceil(len(clean_results) * 0.01)
     clean_results = clean_results[:-to_remove]
     print("Saving cleaned file to {}".format(clean_filename))
-    with clean_filename.open('w') as f:
+    with clean_filename.open("w") as f:
         for duration, ts in clean_results:
             f.write("{}\t{}\n".format(duration, ts))
     return clean_filename
@@ -85,7 +87,7 @@ def clean(clean_dir: Path, filename: Path) -> Path:
 
 def parse_filename(config, filename: Path):
     bn = filename.name
-    all_configs = list(config['configurations'])
+    all_configs = list(config["configurations"])
     all_tests = list(URLS)
     configuration = None
     test = None
@@ -93,11 +95,10 @@ def parse_filename(config, filename: Path):
     to_remove = 0
     # iteratively check the filename
     for conf in all_configs:
-        if not bn.startswith(conf + '_'):
+        if not bn.startswith(conf + "_"):
             continue
         # if we already found a longer match, do nothing
-        if configuration is not None and \
-                configuration > conf:
+        if configuration is not None and configuration > conf:
             continue
         configuration = conf
         to_remove = len(conf) + 1
@@ -107,7 +108,7 @@ def parse_filename(config, filename: Path):
         raise ValueError("No configuration found for filename {}".format(filename))
     # here we don't need to check for repeated strings.
     for t in all_tests:
-        if not bn.startswith(t + '_'):
+        if not bn.startswith(t + "_"):
             continue
         test = t
         to_remove = len(t) + 1
@@ -116,37 +117,39 @@ def parse_filename(config, filename: Path):
     if test is None:
         raise ValueError("No test found for filename {}".format(filename))
 
-    match = re.search(r'c(\d+)', bn)
+    match = re.search(r"c(\d+)", bn)
     if match is None:
         raise ValueError("No concurrency value found in {}".format(filename))
     concurrency = match.group(1)
-    return {'conf': configuration, 't': test, 'c': concurrency}
+    return {"conf": configuration, "t": test, "c": concurrency}
 
 
-def latency_plot(config, images_dir: Path, clean_dir: Path, classifier, name, labels, test, c):
+def latency_plot(
+    config, images_dir: Path, clean_dir: Path, classifier, name, labels, test, c
+):
     filenames = []
     for label in labels:
         filename = "{}_{}_c{}.dat".format(label, test, c)
         try:
-            clean_file = classifier[filename]['clean_file']
+            clean_file = classifier[filename]["clean_file"]
             filenames.append(clean_file)
         except KeyError:
             raise RuntimeError("Unable to find {}".format(filename))
-    label_descrs = map(lambda x: config['configurations'][x], labels)
-    percentiles = ['Percentile\t' + '\t'.join(label_descrs)]
-    for percentile in config['percentiles']:
+    label_descrs = map(lambda x: config["configurations"][x], labels)
+    percentiles = ["Percentile\t" + "\t".join(label_descrs)]
+    for percentile in config["percentiles"]:
         data = [str(percentile)]
         for filename in filenames:
-            with open(filename, 'r') as f:
+            with open(filename, "r") as f:
                 lines = f.readlines()
-                p = lines[round(percentile*len(lines))]
-                data.append(p.split('\t')[0])
-        data = '\t'.join(data)
+                p = lines[round(percentile * len(lines))]
+                data.append(p.split("\t")[0])
+        data = "\t".join(data)
         percentiles.append(data)
-    pfile = '{}_{}_{}_{}.percentiles'.format(name, '+'.join(labels), test, c)
-    print('Saving to ', clean_dir / pfile)
-    percentiles = map(lambda x: x + '\n', percentiles)
-    with open(clean_dir / pfile, 'w') as f:
+    pfile = "{}_{}_{}_{}.percentiles".format(name, "+".join(labels), test, c)
+    print("Saving to ", clean_dir / pfile)
+    percentiles = map(lambda x: x + "\n", percentiles)
+    with open(clean_dir / pfile, "w") as f:
         f.writelines(percentiles)
 
     # And now let's draw it
@@ -165,27 +168,32 @@ set yrange [0:*]
 plot for [COL=2:{last_label}] '{infile}' using COL:xticlabels(1) title columnheader
 """
     content = tpl.format(
-            title=URLS[test]['title'],
-            conc=c,
-            outfile=outfile,
-            infile=clean_dir / pfile,
-            last_label=len(labels) + 1,
-            )
+        title=URLS[test]["title"],
+        conc=c,
+        outfile=outfile,
+        infile=clean_dir / pfile,
+        last_label=len(labels) + 1,
+    )
     gpfile.write_text(content)
-    subprocess.check_call(['gnuplot', str(gpfile)])
-    print('Created {}'.format(outfile))
+    subprocess.check_call(["gnuplot", str(gpfile)])
+    print("Created {}".format(outfile))
 
 
-def gnuplot(config, images_dir: Path, clean_dir: Path, classifier, name, labels, test, c):
+def gnuplot(
+    config, images_dir: Path, clean_dir: Path, classifier, name, labels, test, c
+):
     plot_line = []
     for label in labels:
         filename = "{}_{}_c{}.dat".format(label, test, c)
         try:
-            clean_file = classifier[filename]['clean_file']
+            clean_file = classifier[filename]["clean_file"]
         except KeyError:
             raise RuntimeError("Unable to find {}".format(filename))
-        plot_line.append("'{}' using 1 title '{}' with lines smooth csplines linewidth 4".format(
-            clean_file, config['configurations'][label]))
+        plot_line.append(
+            "'{}' using 1 title '{}' with lines smooth csplines linewidth 4".format(
+                clean_file, config["configurations"][label]
+            )
+        )
     # remove the trailing comma and space
     outfile = images_dir / "{}_{}_c{}.png".format(name, test, c)
     gpfile = clean_dir / "{}_{}_c{}.gpl".format(name, test, c)
@@ -196,17 +204,21 @@ set key left
 set out '{outfile}'
 plot {plotline}
 """
-    content = tpl.format(title=URLS[test]['title'], conc=c, outfile=outfile,
-                         plotline=", ".join(plot_line))
+    content = tpl.format(
+        title=URLS[test]["title"],
+        conc=c,
+        outfile=outfile,
+        plotline=", ".join(plot_line),
+    )
     gpfile.write_text(content)
-    subprocess.check_call(['gnuplot', str(gpfile)])
-    print('Created {}'.format(outfile))
+    subprocess.check_call(["gnuplot", str(gpfile)])
+    print("Created {}".format(outfile))
 
 
 def main():
     args = parse_args()
-    clean_dir = args.data_dir / 'clean'
-    images_dir = args.data_dir / 'images'
+    clean_dir = args.data_dir / "clean"
+    images_dir = args.data_dir / "images"
     with args.config.open() as f:
         config = yaml.safe_load(f)
     print(config)
@@ -221,19 +233,36 @@ def main():
 
     # now clean them
     for filename in sorted(classifier):
-        classifier[filename]['clean_file'] = clean(clean_dir, args.data_dir / filename)
+        classifier[filename]["clean_file"] = clean(clean_dir, args.data_dir / filename)
 
     # Now let's process the comparisons we want and create the graphs
-    for name, configs in config['comparisons'].items():
+    for name, configs in config["comparisons"].items():
         for test in URLS:
             for c in STEPS:
-                if name.startswith('percentiles'):
-                    latency_plot(config, images_dir, clean_dir, classifier,
-                            name, configs, test, c)
+                if name.startswith("percentiles"):
+                    latency_plot(
+                        config,
+                        images_dir,
+                        clean_dir,
+                        classifier,
+                        name,
+                        configs,
+                        test,
+                        c,
+                    )
                 else:
                     # Create a graph series including the configs we picked
-                    gnuplot(config, images_dir, clean_dir, classifier, name, configs, test, c)
+                    gnuplot(
+                        config,
+                        images_dir,
+                        clean_dir,
+                        classifier,
+                        name,
+                        configs,
+                        test,
+                        c,
+                    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
