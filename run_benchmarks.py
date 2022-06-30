@@ -77,6 +77,7 @@ def parse_args():
         default=120,
         help="ab timeout (-s parameter). The default of ab, 30, is not enough. We default to 120",
     )
+    parser.add_argument("--cookie", help="Additional cookies to send with the request.")
 
     return parser.parse_args()
 
@@ -86,7 +87,7 @@ def log(msg):
     print("[%s] %s" % (ts, msg))
 
 
-def ab_req(host, run_label, conc, num_req, filename, url, scheme, timeout):
+def ab_req(host, run_label, conc, num_req, filename, url, scheme, timeout, cookie):
     _, netloc, path, qs, anchor = urlsplit(url)
     my_url = urlunsplit((scheme, host, path, qs, anchor))
     cmd = [
@@ -105,6 +106,9 @@ def ab_req(host, run_label, conc, num_req, filename, url, scheme, timeout):
     # NOTE: This is brittle, but will do for now
     if scheme == "http":
         cmd.extend(["-H", "X-Forwarded-Proto: https"])
+    # Add a cookie if requested
+    if cookie is not None:
+        cmd.extend(["-H", "Cookie: {}".format(cookie)])
 
     # And add the rest now
     cmd.extend(["-g", "{}_{}_c{}.dat".format(run_label, filename, conc), my_url])
@@ -127,6 +131,7 @@ def main():
                 config["url"],
                 args.scheme,
                 args.timeout,
+                args.cookie,
             )
 
 

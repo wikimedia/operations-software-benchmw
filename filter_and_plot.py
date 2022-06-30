@@ -144,8 +144,8 @@ def latency_plot(
                 lines = f.readlines()
                 p = lines[round(percentile * len(lines))]
                 data.append(p.split("\t")[0])
-        data = "\t".join(data)
-        percentiles.append(data)
+        str_data = "\t".join(data)
+        percentiles.append(str_data)
     pfile = "{}_{}_{}_{}.percentiles".format(name, "+".join(labels), test, c)
     print("Saving to ", clean_dir / pfile)
     percentiles = map(lambda x: x + "\n", percentiles)
